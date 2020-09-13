@@ -4,6 +4,7 @@ const USERS_FILE = 'users.json';
 const PRODUCTS_FILE = 'products.json';
 const CATEGORIES_FILE = 'categories.json';
 const ORDERS_FILE = 'orders.json';
+const PRODUCT_IMAGES_FOLDER = 'product_images';
 
 function loginEndpoint()
 {
@@ -133,26 +134,21 @@ function logoutEndpoint()
 function mainPageEndpoint()
 {
     global $smarty;
-
+    $smarty->assign('categories', getCategoriesList());
     $smarty->display('index.tpl');
 }
 
 function adminUsersEndpoint()
 {
 
-    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         global $smarty;
+
+        $users = readFromFile(USERS_FILE);
+
+        $smarty->assign('users', $users);
 
         $smarty->display('admin/users.tpl');
 
-        return;
-    }
-
-    $users = readFromFile(USERS_FILE);
-
-        foreach($users as $user) {
-            echo $user['id'] . '' . $user['email'] . '' . $user['created_at'];
-        }
 }
 
 function adminCategoriesEndpoint()
@@ -160,6 +156,8 @@ function adminCategoriesEndpoint()
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         global $smarty;
+
+        $smarty->assign('categories', getCategoriesList());
 
         $smarty->display('admin/categories.tpl');
 
@@ -171,6 +169,25 @@ function adminCategoriesEndpoint()
 
     createCategory($categoryName, $categoryOrder);
 
+}
+
+function getCategoriesList()
+{
+    $categories = readFromFile(CATEGORIES_FILE, []);
+
+    $len = count($categories) - 1;
+
+    for ($j = 0; $j < $len; $j++) {
+        for($i = 0; $i < $len; $i++) {
+            if ($categories[$i]['order'] > $categories[$i + 1]['order']) {
+                $tmp = $categories[$i];// $tmp = 8
+                $categories[$i] = $categories[$i + 1]; // $arr[0] = 4
+                $categories[$i + 1] = $tmp; // $arr[1] = $tmp = 8;
+            }
+        }
+    }
+
+    return $categories;
 }
 
 function createCategory(string $categoryName, int $categoryOrder)
@@ -194,9 +211,70 @@ function createCategory(string $categoryName, int $categoryOrder)
 
 function adminProductsEndpoint()
 {
-    global $smarty;
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        global $smarty;
 
-    $smarty->display('admin/products.tpl');
+        $smarty->assign('products', getProductsList());
+        $smarty->assign('categories', getCategoriesList());
+        $smarty->display('admin/products.tpl');
+
+        return;
+    }
+}
+
+
+function adminAddProductEndpoint() {
+    $name = $_POST['name'] ?? '';
+    $price = $_POST['price'] ?? null;
+    $image = $_FILES['image'] ?? '';
+    $category_id = $_POST['category_id'] ?? '';
+
+    //TODO ADD VALIDATIONS
+
+    $products = readFromFile(PRODUCTS_FILE, []);
+
+    $productPicture = null;
+
+    if ($image && ($image['tmp_name'] ?? false)) {
+        $imageExt = explode('.', $image['name']);
+        $imageExt = $imageExt[count($imageExt) - 1];
+
+        $productPicture = PRODUCT_IMAGES_FOLDER . '/' . md5(time()) . '.' . $imageExt;
+        move_uploaded_file($image['tmp_name'], __DIR__ . '/' . $productPicture);
+    }
+
+    $product = [
+        'id' => md5(time() . rand(1,100000)),
+        'name' => $name,
+        'price' => $price,
+        'image' => $productPicture,
+        'category_id' => $category_id
+    ];
+
+    $products[] = $product;
+
+    writeFile(PRODUCTS_FILE, $products);
+
+    header("Location: /?action=adminProducts&message=Product <b>$name</b> created successfully");
+}
+
+function getProductsList()
+{
+    $products = readFromFile(PRODUCTS_FILE, []);
+
+    $len = count($products) - 1;
+
+    for ($j = 0; $j < $len; $j++) {
+        for($i = 0; $i < $len; $i++) {
+            if ($products[$i]['price'] > $products[$i + 1]['price']) {
+                $tmp = $products[$i];// $tmp = 8
+                $products[$i] = $products[$i + 1]; // $arr[0] = 4
+                $products[$i + 1] = $tmp; // $arr[1] = $tmp = 8;
+            }
+        }
+    }
+
+    return $products;
 }
 
 function adminOrdersEndpoint()
@@ -226,4 +304,128 @@ function readFromFile(string $fileName, $default = [])
     $json = file_get_contents($fileName);
 
     return json_decode($json, true);
+}
+
+function adminUpdateCategoryEndpoint()
+{
+    $name = $_POST['name'] ?? '';
+    $order = $_POST['order'] ?? 0;
+    $id = $_POST['id'] ?? 0; //123
+
+    if (strlen($name) < 3) {
+        header("Location: /?action=adminCategories&error=Category name should be at least 3 symbols length!");
+        return;
+    }
+
+    if ($id === 0) {
+        header("Location: /?action=adminCategories&error=Undefined category to update. Please send us ID");
+        return;
+    }
+
+    if (!is_numeric($order)) {
+        header("Location: /?action=adminCategories&error=Order should be numeric");
+        return;
+    }
+
+    $categories = getCategoriesList();
+
+    $updated = false;
+
+    foreach ($categories as &$category) {
+        if ($category['id'] === $id) {
+            $category['name'] = $name;
+            $category['order'] = $order;
+
+            $updated = true;
+        }
+    }
+
+    if (!$updated) {
+        header("Location: /?action=adminCategories&error=The category with id $id does not exists");
+        return;
+    }
+
+    writeFile(CATEGORIES_FILE, $categories);
+
+    header("Location: /?action=adminCategories&message=The category with id=$id has been updated!");
+
+}
+
+function adminRemoveCategoryEndpoint()
+{
+    $categoryId = $_GET['categoryId'] ?? '';
+
+    if (strlen($categoryId) != 32) {
+        header("Location: /?action=adminCategories&error=Wrong ID given");
+    }
+
+    $categories = getCategoriesList();
+
+    $len = count($categories);
+
+    $deleted = false;
+
+    for($i = 0; $i < $len; $i++) {
+        if ($categories[$i]['id'] === $categoryId) {
+            unset($categories[$i]);
+            $deleted = true;
+            break;
+        }
+    }
+
+    if (!$deleted) {
+        header("Location: /?action=adminCategories&error=404 not found! The category you want to remove does not exist!");
+    }
+
+    writeFile(CATEGORIES_FILE, array_values($categories));
+
+    header("Location: /?action=adminCategories&message=The category with id=$categoryId has been removed!");
+}
+
+function checkUserRole() {
+    if($_SESSION['user'] ?? false) {
+        return;
+
+    }
+    $userMail = $_SESSION['user'] ['email'];
+    $userRole = $_SESSION['user'] ['is_admin'];
+
+    foreach (readFromFile(USERS_FILE) as $user) {
+        if ($userMail === $user ['email'] && $userRole !== $user['is_admin']) {
+            logoutEndpoint();
+            }
+    }
+}
+
+function adminChangeRoleEndpoint()
+{
+    $id = $_POST['id'] && 0;
+    $admin = $_POST['admin'] ?? null;
+
+    if ($admin === null) {
+        header("Location: /?action=adminUsers&error=You did not specify the role");
+        return;
+    }
+
+    if ($admin === 0) {
+        header("Location: /?action=adminUsers&error=You did not specify the ID");
+        return;
+    }
+
+    $admin = (int) $admin;
+
+    $users = readFromFile(USERS_FILE);
+
+    $updated = false;
+
+    foreach ($users as $user) {
+        if ($user['id'] === $id) {
+            $user['is_admin'] = $admin;
+            $updated = true;
+            break;
+        }
+    }
+
+    writeFile(USERS_FILE, $users);
+    header("Location: /action=adminUsers&message=You updated user role for user with ID $id");
 }

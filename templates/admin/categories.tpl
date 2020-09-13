@@ -34,16 +34,13 @@
         </tr>
         </thead>
         <tbody>
-        <tr>
-            <td>1</td>
-            <td>Phones</td>
-            <td>1</td>
-        </tr>
-        <tr>
-            <td>2</td>
-            <td>Tablets</td>
-            <td>2</td>
-        </tr>
+        {foreach from=$categories item=category}
+            <tr>
+                <td>{$category['id']}</td>
+                <td>{$category['name']}</td>
+                <td>{$category['order']}</td>
+            </tr>
+        {/foreach}
         </tbody>
     </table>
 

@@ -12,13 +12,26 @@
         <tbody>
         {foreach from=$users item=$user}
             <tr>
-                <td>{$user['id']}</td>
-                <td>{$user['email']}</td>
-                <td>{$user['created_at']}</td>
-            </tr>
-            <tr>
-                <button class="btn btn-success">Make admin</button>
-                <button class="btn btn-danger">Delete</button>
+                    <td>{$user['id']}</td>
+                    <td>{$user['email']}</td>
+                    <td>{$user['created_at']}</td>
+                    <td>{if $user['is_admin'] == 1} admin {else} user {/if}</td>
+                    <td>
+                        {if $user['is_admin'] == 1}
+                            <form action="/?action=adminChangeRole" method="POST">
+                                <input type="hidden" value="$user['id']" name="id ">
+                                <input type="hidden" value="0" name="admin ">
+                                <input type="submit" class="btn btn-primary" value="Make user">
+                            </form>
+                        {else}
+                            <form action="/?action=adminChangeRole" method="POST">
+                                <input type="hidden" value="$user['id']" name="id ">
+                                <input type="hidden" value="1" name="admin ">
+                                <input type="submit" class="btn btn-success" value="Make admin">
+                            </form>
+                        {/if}
+                        <button class="btn btn-danger">Delete</button>
+                    </td>
             </tr>
         {/foreach}
         </tbody>
