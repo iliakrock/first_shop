@@ -26,11 +26,17 @@
                         {else}
                             <form action="/?action=adminChangeRole" method="POST">
                                 <input type="hidden" value="$user['id']" name="id ">
-                                <input type="hidden" value="1" name="admin ">
+                                <input type="hidden" value="1" name="admin">
                                 <input type="submit" class="btn btn-success" value="Make admin">
                             </form>
                         {/if}
-                        <button class="btn btn-danger">Delete</button>
+                        {if $user['id'] == $smarty.session.user.id}
+                            -
+                        {else}
+                            <form action="/?action=adminRemoveUsers" method="GET">
+                                <input type="hidden" value="{$user['id']}" name="id">
+                                <a href="/?action=adminRemoveUsers&userId={$user['id']}" class="btn btn-danger">Delete</form>
+                        {/if}
                     </td>
             </tr>
         {/foreach}

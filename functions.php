@@ -248,7 +248,7 @@ function adminAddProductEndpoint() {
         'name' => $name,
         'price' => $price,
         'image' => $productPicture,
-        'category_id' => $category_id
+        'category_id' => $category_id,
     ];
 
     $products[] = $product;
@@ -428,4 +428,24 @@ function adminChangeRoleEndpoint()
 
     writeFile(USERS_FILE, $users);
     header("Location: /action=adminUsers&message=You updated user role for user with ID $id");
+}
+
+function adminRemoveUsersEndpoint()
+{
+    $userId = $_GET['userId'];
+
+    if($userId===null)return;
+
+    $user =  readFromFile(USERS_FILE);
+
+    $len = count($user);
+
+    for ($i = 0; $i < $len; $i++)
+        if ($user[$i]['id'] === $userId) {
+            unset($user[$i]);
+
+            writeFile(USERS_FILE, $user);
+            header("Location: /?action=adminUsers&message=You DELIT USERS");
+            return;
+        }
 }

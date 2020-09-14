@@ -28,6 +28,9 @@ switch ($action) {
     case "adminChangeRole":
         adminChangeRoleEndpoint();
         break;
+    case "adminRemoveUsers":
+        adminRemoveUsersEndpoint();
+        break;
     case "adminRemoveCategory":
         adminRemoveCategoryEndpoint();
         break;

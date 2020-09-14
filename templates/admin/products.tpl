@@ -55,7 +55,7 @@
                 <td>{$product['id']}</td>
                 <td>{$product['name']}</td>
                 <td>{$product['price']}</td>
-                <td>{$product['image']}</td>
+                <td><img src="{$product['image']}" width="40" height="40"></td>
                 <td>{$product['category_id']}</td>
             </tr>
         {/foreach}
