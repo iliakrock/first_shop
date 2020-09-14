@@ -436,7 +436,7 @@ function adminRemoveUsersEndpoint()
 
     if($userId===null)return;
 
-    $user =  readFromFile(USERS_FILE);
+    $user = readFromFile(USERS_FILE);
 
     $len = count($user);
 
@@ -445,7 +445,7 @@ function adminRemoveUsersEndpoint()
             unset($user[$i]);
 
             writeFile(USERS_FILE, $user);
-            header("Location: /?action=adminUsers&message=You DELIT USERS");
+            header("Location: /?action=adminUsers&message=User has been deleted");
             return;
         }
 }
